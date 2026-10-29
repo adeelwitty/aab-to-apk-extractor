@@ -6,7 +6,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import javax.imageio.ImageIO;
 
-/** Draws the app icon (an app bundle box with an APK arrow coming out) and writes PNG sizes + .ico. */
+/** Draws the app icon (an app bundle box with the Android robot head peeking out) and writes PNG sizes + .ico. */
 public class GenIcon {
     static BufferedImage draw(int size) {
         BufferedImage img = new BufferedImage(size, size, BufferedImage.TYPE_INT_ARGB);
@@ -51,20 +51,29 @@ public class GenIcon {
         inner.moveTo(cx, top - h * k); inner.lineTo(cx + w * k, top); inner.lineTo(cx, top + h * k); inner.lineTo(cx - w * k, top); inner.closePath();
         g.setColor(new Color(0x07402C)); g.fill(inner);
 
-        // arrow coming up out of the box (the extracted APK)
-        Path2D arrow = new Path2D.Double();
-        double ax = cx, shaftW = 70, headW = 190, tip = 190, headBase = 355, shaftBottom = 540;
-        arrow.moveTo(ax, tip);
-        arrow.lineTo(ax + headW / 2, headBase);
-        arrow.lineTo(ax + shaftW / 2, headBase);
-        arrow.lineTo(ax + shaftW / 2, shaftBottom);
-        arrow.lineTo(ax - shaftW / 2, shaftBottom);
-        arrow.lineTo(ax - shaftW / 2, headBase);
-        arrow.lineTo(ax - headW / 2, headBase);
-        arrow.closePath();
-        g.setClip(new Rectangle2D.Double(0, 0, 1024, top + 5));   // arrow emerges from inside the opening
-        g.setColor(new Color(0, 0, 0, 50)); g.fill(AffineTransform.getTranslateInstance(0, 14).createTransformedShape(arrow));
-        g.setColor(Color.WHITE); g.fill(arrow);
+        // Android robot head peeking out of the box (the extracted APK)
+        double hr = 135, hcy = 430;
+        Path2D headShape = new Path2D.Double();
+        headShape.moveTo(cx - hr, 700);
+        headShape.lineTo(cx - hr, hcy);
+        headShape.append(new Arc2D.Double(cx - hr, hcy - hr, 2 * hr, 2 * hr, 180, -180, Arc2D.OPEN), true);
+        headShape.lineTo(cx + hr, 700);
+        headShape.closePath();
+        Path2D above = new Path2D.Double();   // everything above the box's front rim
+        above.moveTo(0, 0); above.lineTo(1024, 0); above.lineTo(1024, top);
+        above.lineTo(cx + w, top); above.lineTo(cx, top + h); above.lineTo(cx - w, top); above.lineTo(0, top); above.closePath();
+        g.setClip(above);
+        g.setColor(new Color(0, 0, 0, 50)); g.fill(AffineTransform.getTranslateInstance(0, 14).createTransformedShape(headShape));
+        g.setColor(Color.WHITE); g.fill(headShape);
+        // eyes
+        g.setColor(new Color(0x12A874));
+        g.fill(new Ellipse2D.Double(cx - 58 - 17, hcy - 52 - 17, 34, 34));
+        g.fill(new Ellipse2D.Double(cx + 58 - 17, hcy - 52 - 17, 34, 34));
+        // antennae
+        g.setStroke(new BasicStroke(18, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+        g.setColor(Color.WHITE);
+        g.draw(new Line2D.Double(cx - 75, hcy - 108, cx - 112, hcy - 170));
+        g.draw(new Line2D.Double(cx + 75, hcy - 108, cx + 112, hcy - 170));
         g.setClip(null);
         // front lip of the box drawn over the arrow base
         Path2D lip = new Path2D.Double();
