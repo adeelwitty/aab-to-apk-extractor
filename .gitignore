@@ -1,0 +1,10 @@
+# build outputs & downloaded third-party binaries (recreated by scripts/package.sh)
+/dist/
+/build/
+/.cache/
+/lib/
+/runtime/
+*.app/
+/AAB to APK Extractor.bat
+.DS_Store
+*.class
