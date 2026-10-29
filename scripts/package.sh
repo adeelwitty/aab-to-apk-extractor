@@ -1,9 +1,9 @@
 #!/bin/bash
 # Builds the three release packages into dist/:
-#   AABtoAPK-<version>-macOS-AppleSilicon.zip
-#   AABtoAPK-<version>-macOS-Intel.zip
-#   AABtoAPK-<version>-Windows-x64.zip
-# Needs a Mac with a JDK 17+ (javac), clang, codesign, ditto, curl, zip. Downloads (and caches in .cache/):
+#   AABtoAPK-<version>-macOS-AppleSilicon.dmg
+#   AABtoAPK-<version>-macOS-Intel.dmg
+#   AABtoAPK-<version>-Windows-x64-Setup.exe
+# Needs a Mac with a JDK 17+ (javac), clang, codesign, hdiutil, curl and NSIS (brew install makensis). Downloads (and caches in .cache/):
 # bundletool, FlatLaf and the Temurin 17 JREs. Usage: scripts/package.sh [version]
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -22,6 +22,7 @@ fetch "https://api.adoptium.net/v3/binary/latest/17/ga/mac/x64/jre/hotspot/norma
 fetch "https://api.adoptium.net/v3/binary/latest/17/ga/windows/x64/jre/hotspot/normal/eclipse" jre-win-x64.zip
 
 # ---- GUI jar ----
+rm -f "$DIST"/AABtoAPK-* "$DIST"/SHA256SUMS-*
 rm -rf "$BUILD" && mkdir -p "$BUILD/classes"
 javac --release 17 -cp "$CACHE/flatlaf.jar" -d "$BUILD/classes" src/*.java
 cp resources/*.png "$BUILD/classes/"
@@ -41,23 +42,28 @@ mac_app() { # <label> <clang arch> <jre archive> <jre dir name> <min macOS>
   tar -xzf "$CACHE/$jre" -C "$app/Contents/Resources/$jredir" --strip-components=1
   codesign --force --deep -s - --identifier co.gamedistrict.aabtoapk "$app"
   codesign --verify --deep --strict "$app"
-  local out="$DIST/AABtoAPK-$VERSION-macOS-$label.zip"
-  rm -f "$out"; ditto -c -k --keepParent "$app" "$out"
+  # disk image with the app and an Applications shortcut for drag-to-install
+  local dmgdir="$stage/dmg"; mkdir -p "$dmgdir"
+  ditto "$app" "$dmgdir/$APPNAME.app"
+  ln -s /Applications "$dmgdir/Applications"
+  local out="$DIST/AABtoAPK-$VERSION-macOS-$label.dmg"
+  rm -f "$out"
+  hdiutil create -quiet -volname "$APPNAME" -srcfolder "$dmgdir" -fs HFS+ -format UDZO -ov "$out"
   echo "Built $out"
 }
 mac_app AppleSilicon arm64  jre-mac-arm64.tar.gz mac-arm64 11.0
 mac_app Intel        x86_64 jre-mac-x64.tar.gz   mac-x64    10.15
 
-# ---- Windows package ----
-WIN="$BUILD/win/AABtoAPK-Windows"
+# ---- Windows installer (.exe, built with NSIS) ----
+WIN="$BUILD/win/stage"
 rm -rf "$BUILD/win"; mkdir -p "$WIN/lib" "$WIN/runtime"
 cp "$BUILD/ApkExtractor.jar" "$CACHE/flatlaf.jar" "$CACHE/bundletool.jar" "$WIN/lib/"
 unzip -q "$CACHE/jre-win-x64.zip" -d "$BUILD/win/jre"
 mv "$BUILD"/win/jre/*/ "$WIN/runtime/win-x64"
-cp "windows/$APPNAME.bat" assets/icon.ico "$WIN/"
-cp README.md LICENSE THIRD_PARTY_NOTICES.md "$WIN/" 2>/dev/null || true
-OUT="$PWD/$DIST/AABtoAPK-$VERSION-Windows-x64.zip"
-rm -f "$OUT"; (cd "$BUILD/win" && zip -qr "$OUT" AABtoAPK-Windows)
+cp assets/icon.ico LICENSE THIRD_PARTY_NOTICES.md "$WIN/"
+OUT="$PWD/$DIST/AABtoAPK-$VERSION-Windows-x64-Setup.exe"
+rm -f "$OUT"
+LC_ALL=en_US.UTF-8 makensis -V1 -DVERSION="$VERSION" -DSTAGE="$PWD/$WIN" -DICON="$PWD/assets/icon.ico" -DOUTFILE="$OUT" windows/installer.nsi
 echo "Built $OUT"
 
 (cd "$DIST" && shasum -a 256 AABtoAPK-"$VERSION"-* > SHA256SUMS-"$VERSION".txt)

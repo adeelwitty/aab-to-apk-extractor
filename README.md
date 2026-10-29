@@ -8,20 +8,19 @@ bundletool) is bundled, so there is nothing to install.
 
 ## Download
 
-Get the package for your computer from the **[Releases](../../releases)** page:
+Get the installer for your computer from the **[Releases](../../releases)** page:
 
 | Computer | File |
 |---|---|
-| Mac with Apple chip (M1/M2/M3/M4) | `AABtoAPK-<version>-macOS-AppleSilicon.zip` |
-| Mac with Intel chip | `AABtoAPK-<version>-macOS-Intel.zip` |
-| Windows 10/11 (x64) | `AABtoAPK-<version>-Windows-x64.zip` |
+| Mac with Apple chip (M1/M2/M3/M4) | `AABtoAPK-<version>-macOS-AppleSilicon.dmg` |
+| Mac with Intel chip | `AABtoAPK-<version>-macOS-Intel.dmg` |
+| Windows 10/11 (x64) | `AABtoAPK-<version>-Windows-x64-Setup.exe` |
 
-Unzip, then start `AAB to APK Extractor.app` (Mac) or `AAB to APK Extractor.bat` (Windows). Nothing to install, nothing to compile,
-and the folder can be copied to another computer.
-
-**macOS first launch:** the app is only ad-hoc signed. If macOS says it is damaged or from an unidentified developer, right-click it → **Open**, or run
-`xattr -dr com.apple.quarantine "AAB to APK Extractor.app"`. macOS may ask to allow access to Documents/Downloads/Desktop when you browse them — click **Allow**.
-**Windows first launch:** if SmartScreen warns about the `.bat`, choose **More info → Run anyway**.
+**macOS:** open the `.dmg` and drag the app to *Applications*. The app is only ad-hoc signed, so if macOS says it is damaged or from an unidentified
+developer, right-click it → **Open**, or run `xattr -dr com.apple.quarantine "/Applications/AAB to APK Extractor.app"`.
+macOS may ask to allow access to Documents/Downloads/Desktop when you browse them — click **Allow**.
+**Windows:** run the setup (per-user install, no admin needed). If SmartScreen warns, choose **More info → Run anyway**.
+Nothing else to install, and everything works offline.
 
 ## Use it
 
@@ -36,20 +35,21 @@ Passwords are never saved; only the last keystore path and the alias chosen per 
 
 ## Build the release packages yourself
 
-On a Mac with JDK 17+, Xcode command-line tools, `curl` and `zip`:
+On a Mac with JDK 17+, Xcode command-line tools, `curl` and NSIS (`brew install makensis`):
 
 ```bash
-scripts/package.sh 1.0.0     # downloads bundletool/FlatLaf/JREs into .cache/, writes the zips + SHA256SUMS to dist/
+scripts/package.sh 1.0.0     # downloads bundletool/FlatLaf/JREs into .cache/, writes the two .dmg files, the Setup .exe and SHA256SUMS to dist/
 ```
 
 | Path | What |
 |---|---|
 | `src/ApkExtractorApp.java` | the GUI (Java Swing + FlatLaf); calls bundletool in a subprocess |
 | `src-mac/` | tiny native macOS launcher (`launcher.c`) and `Info.plist` template |
-| `windows/` | Windows launcher script |
+| `windows/installer.nsi` | NSIS script for the Windows installer |
 | `resources/`, `assets/` | app icon (PNG sizes for the window, `.icns`, `.ico`) |
 | `tools/GenIcon.java` | draws the icon and exports all sizes |
-| `scripts/package.sh` | builds the three release packages |
+| `scripts/package.sh` | builds the `.dmg` (x2) and the Windows setup `.exe` |
+| `docs/` | release notes |
 
 ## License
 
